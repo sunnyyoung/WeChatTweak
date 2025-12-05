@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "PromiseKit",
+        "repositoryURL": "https://github.com/mxcl/PromiseKit",
+        "state": {
+          "branch": null,
+          "revision": "2bc44395edb4f8391902a9ff7c220471882a4d07",
+          "version": "8.2.0"
+        }
+      },
+      {
+        "package": "swift-argument-parser",
+        "repositoryURL": "https://github.com/apple/swift-argument-parser",
+        "state": {
+          "branch": null,
+          "revision": "cdd0ef3755280949551dc26dee5de9ddeda89f54",
+          "version": "1.6.2"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
