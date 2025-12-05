@@ -50,7 +50,15 @@ struct Patch: ParsableCommand {
             return URL(fileURLWithPath: $0)
         }
     )
-    var config: URL = URL(fileURLWithPath: "config.json")
+    var config: URL = {
+        var size: UInt32 = 0
+        _NSGetExecutablePath(nil, &size)
+        var buffer = [CChar](repeating: 0, count: Int(size))
+        guard _NSGetExecutablePath(&buffer, &size) == 0, let path = String(utf8String: buffer) else {
+            return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        }
+        return URL(fileURLWithPath: path).resolvingSymlinksInPath().deletingLastPathComponent().appendingPathComponent("config.json")
+    }()
 
     func run() throws {
         let configs = try JSONDecoder().decode([Config].self, from: Data(contentsOf: self.config))
