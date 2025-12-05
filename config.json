@@ -71,6 +71,16 @@
             "asm": "00008052C0035FD6"
           }
         ]
+      },
+      {
+        "identifier": "multiInstance",
+        "entries": [
+          {
+            "arch": "arm64",
+            "addr": "1001e1c10",
+            "asm": "20008052C0035FD6"
+          }
+        ]
       }
     ]
   }
