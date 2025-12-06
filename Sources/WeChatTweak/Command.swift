@@ -5,7 +5,6 @@
 //
 
 import Foundation
-import PromiseKit
 import ArgumentParser
 
 struct Command {
@@ -15,46 +14,44 @@ struct Command {
         var errorDescription: String? {
             switch self {
             case let .executing(command, error):
-                return "Execute command: \(command) failed: \(error)"
+                return "executing: \(command) error: \(error)"
             }
         }
     }
 
-    static func patch(app: URL, config: Config) -> Promise<Void> {
-        print("------ Path ------")
-        return Promise { seal in
-            do {
-                seal.fulfill(try Patcher.patch(binary: app.appendingPathComponent("Contents/MacOS/WeChat"), config: config))
-            } catch {
-                seal.reject(error)
-            }
-        }
+    static func version(app: URL) async throws -> String? {
+        try await Command.execute(command: "defaults read \(app.appendingPathComponent("Contents/Info.plist").path) CFBundleVersion")
     }
 
-    static func resign(app: URL) -> Promise<Void> {
-        print("------ Resign ------")
-        return firstly {
-            Command.execute(command: "codesign --remove-sign \(app.path)")
-        }.then {
-            Command.execute(command: "codesign --force --deep --sign - \(app.path)")
-        }.then {
-            Command.execute(command: "xattr -cr \(app.path)")
-        }
+    static func patch(app: URL, config: Config) async throws {
+        try Patcher.patch(binary: app.appendingPathComponent("Contents/MacOS/WeChat"), config: config)
     }
 
-    private static func execute(command: String) -> Promise<Void> {
-        return Promise { seal in
-            print("Execute command: \(command)")
-            var error: NSDictionary?
-            guard let script = NSAppleScript(source: "do shell script \"\(command)\"") else {
-                return seal.reject(Error.executing(command: command, error: ["error": "Create script failed."]))
-            }
-            script.executeAndReturnError(&error)
-            if let error = error {
-                seal.reject(Error.executing(command: command, error: error))
-            } else {
-                seal.fulfill(())
-            }
+    static func resign(app: URL) async throws {
+        try await Command.execute(command: "codesign --remove-sign \(app.path)")
+        try await Command.execute(command: "codesign --force --deep --sign - \(app.path)")
+        try await Command.execute(command: "xattr -cr \(app.path)")
+    }
+
+    @discardableResult
+    private static func execute(command: String) async throws -> String? {
+        guard let script = NSAppleScript(source: "do shell script \"\(command)\"") else {
+            throw Error.executing(
+                command: command,
+                error: ["error": "Create script failed."]
+            )
+        }
+
+        var error: NSDictionary?
+        let descriptor = script.executeAndReturnError(&error)
+
+        if let error = error {
+            throw Error.executing(
+                command: command,
+                error: error
+            )
+        } else {
+            return descriptor.stringValue
         }
     }
 }

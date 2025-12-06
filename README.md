@@ -5,8 +5,15 @@
 
 ## 功能
 
-- [x] 阻止消息撤回
-- [ ] 客户端无限多开
+- 阻止消息撤回
+- 阻止自动更新
+- 客户端多开
+
+## 安装
+
+```bash
+brew install sunnyyoung/tap/wechattweak
+```
 
 ## 使用
 

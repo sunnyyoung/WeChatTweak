@@ -5,13 +5,14 @@
 //
 
 import Foundation
-import PromiseKit
+import Dispatch
 import ArgumentParser
 
-struct Patch: ParsableCommand {
+struct Patch: AsyncParsableCommand {
     enum Error: LocalizedError {
         case invalidApp
         case invalidConfig
+        case invalidVersion
         case unsupportedVersion
 
         var errorDescription: String? {
@@ -20,6 +21,8 @@ struct Patch: ParsableCommand {
                 return "Invalid app path"
             case .invalidConfig:
                 return "Invalid patch config"
+            case .invalidVersion:
+                return "Invalid app version"
             case .unsupportedVersion:
                 return "Unsupported WeChat version"
             }
@@ -30,7 +33,7 @@ struct Patch: ParsableCommand {
 
     @Option(
         name: .shortAndLong,
-        help: "Default: /Applications/WeChat.app",
+        help: "Path of WeChat.app",
         transform: {
             guard FileManager.default.fileExists(atPath: $0) else {
                 throw Error.invalidApp
@@ -42,55 +45,58 @@ struct Patch: ParsableCommand {
 
     @Option(
         name: .shortAndLong,
-        help: "Default: ./config.json",
+        help: "Local path or Remote URL of config.json",
         transform: {
-            guard FileManager.default.fileExists(atPath: $0) else {
-                throw Error.invalidConfig
+            if FileManager.default.fileExists(atPath: $0) {
+                return URL(fileURLWithPath: $0)
+            } else {
+                guard let url = URL(string: $0) else {
+                    throw Error.invalidConfig
+                }
+                return url
             }
-            return URL(fileURLWithPath: $0)
         }
     )
-    var config: URL = {
-        var size: UInt32 = 0
-        _NSGetExecutablePath(nil, &size)
-        var buffer = [CChar](repeating: 0, count: Int(size))
-        guard _NSGetExecutablePath(&buffer, &size) == 0, let path = String(utf8String: buffer) else {
-            return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        }
-        return URL(fileURLWithPath: path).resolvingSymlinksInPath().deletingLastPathComponent().appendingPathComponent("config.json")
-    }()
+    var config: URL = URL(string: "https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/refs/heads/feature/2.0/config.json")!
 
-    func run() throws {
-        let configs = try JSONDecoder().decode([Config].self, from: Data(contentsOf: self.config))
+    mutating func run() async throws {
+        do {
+            print("------ Version ------")
+            guard let version = try await Command.version(app: self.app) else {
+                throw Error.invalidVersion
+            }
+            print("\(version)")
 
-        guard
-            let info = NSDictionary(contentsOf: self.app.appendingPathComponent("Contents/Info.plist")),
-            let version = info["CFBundleVersion"] as? String,
-            let config = configs.first(where: { $0.version == version })
-        else {
-            throw Error.unsupportedVersion
-        }
+            print("------ Config ------")
+            guard let config = (try await Config.load(from: self.config)).first(where: { $0.version == version }) else {
+                throw Error.unsupportedVersion
+            }
+            print("\(config)")
 
-        firstly {
-            Command.patch(
+            print("------ Patch ------")
+            try await Command.patch(
                 app: self.app,
                 config: config
             )
-        }.then {
-            Command.resign(app: self.app)
-        }.ensure {
-            print("")
-        }.done {
-            print("🎉 Done!")
+            print("Done!")
+
+            print("------ Resign ------")
+            try await Command.resign(
+                app: self.app
+            )
+            print("Done!")
+
+            print("------🎉 Done!------")
             Darwin.exit(EXIT_SUCCESS)
-        }.catch { error in
-            print("🚨 \(error.localizedDescription)", stderr)
+        } catch {
+            print("------🚨 Error------")
+            print("\(error.localizedDescription)")
             Darwin.exit(EXIT_FAILURE)
         }
     }
 }
 
-struct Tweak: ParsableCommand {
+struct Tweak: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "wechattweak",
         abstract: "A command-line tool for tweaking WeChat.",
@@ -101,5 +107,8 @@ struct Tweak: ParsableCommand {
     )
 }
 
-Tweak.main()
-CFRunLoopRun()
+Task {
+    await Tweak.main()
+}
+
+Dispatch.dispatchMain()

@@ -80,6 +80,20 @@ struct Config: Decodable {
 
     let version: String
     let targets: [Target]
+
+    static func load(from url: URL) async throws -> [Config] {
+        if url.isFileURL {
+            return try JSONDecoder().decode(
+                [Config].self,
+                from: Data(contentsOf: url)
+            )
+        } else {
+            return try JSONDecoder().decode(
+                [Config].self,
+                from: try await URLSession.shared.data(from: url).0
+            )
+        }
+    }
 }
 
 private extension Data {
