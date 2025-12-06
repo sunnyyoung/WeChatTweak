@@ -105,11 +105,15 @@ struct Tweak: AsyncParsableCommand {
         subcommands: [
             Versions.self,
             Patch.self
-        ],
-        defaultSubcommand: Self.self
+        ]
     )
 
     static let config = URL(string:"https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/refs/heads/feature/2.0/config.json")!
+
+    mutating func run() async throws {
+        print(Tweak.helpMessage())
+        Darwin.exit(EXIT_SUCCESS)
+    }
 }
 
 Task {
