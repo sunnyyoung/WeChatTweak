@@ -11,14 +11,17 @@ A command-line tool for tweaking WeChat.
 ## 安装&使用
 
 ```bash
-# 首次安装
+# 安装
 brew install sunnyyoung/tap/wechattweak
 
 # 更新
 brew upgrade wechattweak
 
-# 使用
+# 执行 Patch
 wechattweak patch
+
+# 查看所有支持的 WeChat 版本
+wechattweak versions
 ```
 
 ## 参考
