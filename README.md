@@ -1,7 +1,6 @@
 # WeChatTweak
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![README](https://img.shields.io/badge/Telegram-WeChatTweak-brightgreen.svg)](https://t.me/wechattweak)
+A command-line tool for tweaking WeChat.
 
 ## 功能
 
@@ -9,15 +8,16 @@
 - 阻止自动更新
 - 客户端多开
 
-## 安装
+## 安装&使用
 
 ```bash
+# 首次安装
 brew install sunnyyoung/tap/wechattweak
-```
 
-## 使用
+# 更新
+brew upgrade wechattweak
 
-```bash
+# 使用
 wechattweak patch
 ```
 
