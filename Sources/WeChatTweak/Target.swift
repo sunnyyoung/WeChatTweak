@@ -1,29 +1,28 @@
 //
-//  Config.swift
+//  Target.swift
 //  WeChatTweak
 //
 //  Created by Sunny Young on 2025/12/5.
 //
 
 import Foundation
-import MachO
 
-struct Config: Decodable {
-    enum Arch: String, Decodable {
-        case arm64
-        case x86_64
+struct Target: Decodable {
+    struct Entry: Decodable {
+        enum Arch: String, Decodable {
+            case arm64
+            case x86_64
 
-        var cpu: UInt32 {
-            switch self {
-            case .arm64:
-                return UInt32(CPU_TYPE_ARM64)
-            case .x86_64:
-                return UInt32(CPU_TYPE_X86_64)
+            var cpu: UInt32 {
+                switch self {
+                case .arm64:
+                    return UInt32(CPU_TYPE_ARM64)
+                case .x86_64:
+                    return UInt32(CPU_TYPE_X86_64)
+                }
             }
         }
-    }
 
-    struct Entry: Decodable {
         let arch: Arch
         let addr: UInt64
         let asm: Data
@@ -62,38 +61,8 @@ struct Config: Decodable {
         }
     }
 
-    struct Target: Decodable {
-        let identifier: String
-        let entries: [Entry]
-
-        private enum CodingKeys: CodingKey {
-            case identifier
-            case entries
-        }
-
-        init(from decoder: any Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.identifier = try container.decode(String.self, forKey: .identifier)
-            self.entries = try container.decode([Entry].self, forKey: .entries)
-        }
-    }
-
-    let version: String
-    let targets: [Target]
-
-    static func load(url: URL) async throws -> [Config] {
-        if url.isFileURL {
-            return try JSONDecoder().decode(
-                [Config].self,
-                from: Data(contentsOf: url)
-            )
-        } else {
-            return try JSONDecoder().decode(
-                [Config].self,
-                from: try await URLSession.shared.data(from: url).0
-            )
-        }
-    }
+    let identifier: String
+    let entries: [Entry]
 }
 
 private extension Data {

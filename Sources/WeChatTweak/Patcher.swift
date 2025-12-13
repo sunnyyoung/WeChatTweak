@@ -17,12 +17,11 @@ struct Patcher {
         case noArchMatched
     }
 
-    static func patch(binary: URL, config: Config) throws {
+    static func patch(binary: URL, entries: [Target.Entry]) throws {
         guard FileManager.default.fileExists(atPath: binary.path) else {
             throw Error.invalidFile
         }
 
-        let entries = config.targets.flatMap { $0.entries }
         guard !entries.isEmpty else { throw Error.noArchMatched }
 
         let fh = try FileHandle(forUpdating: binary)

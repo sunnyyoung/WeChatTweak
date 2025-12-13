@@ -23,8 +23,8 @@ struct Command {
         try await Command.execute(command: "defaults read \(app.appendingPathComponent("Contents/Info.plist").path) CFBundleVersion")
     }
 
-    static func patch(app: URL, config: Config) async throws {
-        try Patcher.patch(binary: app.appendingPathComponent("Contents/MacOS/WeChat"), config: config)
+    static func patch(app: URL, targets: [Target]) async throws {
+        try Patcher.patch(binary: app.appendingPathComponent("Contents/MacOS/WeChat"), entries: targets.flatMap { $0.entries })
     }
 
     static func resign(app: URL) async throws {
