@@ -19,7 +19,7 @@ A command-line tool for tweaking WeChat.
 brew install sunnyyoung/tap/wechattweak
 
 # 更新
-brew upgrade wechattweak
+brew upgrade sunnyyoung/tap/wechattweak
 
 # 执行 Patch
 wechattweak patch
