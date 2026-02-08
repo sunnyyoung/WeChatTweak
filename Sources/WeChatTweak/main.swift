@@ -52,6 +52,12 @@ extension Tweak {
             )
             print("Done!")
 
+            print("------ Plugin ------")
+            try Command.copyPlugin(app: options.app)
+            print("Plugin copied!")
+            try Command.injectDylib(app: options.app)
+            print("Plugin injected!")
+
             print("------ Resign ------")
             try await Command.resign(
                 app: options.app
