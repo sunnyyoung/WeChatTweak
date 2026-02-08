@@ -20,7 +20,7 @@ extension Tweak {
             print("------ Current version ------")
             print(try await Command.version(app: options.app) ?? "unknown")
             print("------ Supported versions ------")
-            try await Config.load(url: options.config).forEach({ print($0.version) })
+            try await Tweak.versions().forEach { print($0) }
             Darwin.exit(EXIT_SUCCESS)
         }
     }
@@ -36,25 +36,21 @@ extension Tweak {
 
         mutating func run() async throws {
             print("------ Version ------")
-            let version = try await Command.version(app: options.app)
-            print("WeChat version: \(version ?? "unknown")")
-
-            print("------ Config ------")
-            guard let config = (try await Config.load(url: options.config)).first(where: { $0.version == version }) else {
+            guard let version = try await Command.version(app: self.options.app), let targets = try await Tweak.load(version: version) else {
                 throw Error.unsupportedVersion
             }
-            print("Matched config: \(config)")
+            print("\(version)")
 
             print("------ Patch ------")
             try await Command.patch(
-                app: options.app,
-                config: config
+                app: self.options.app,
+                targets: targets
             )
             print("Done!")
 
             print("------ Resign ------")
             try await Command.resign(
-                app: options.app
+                app: self.options.app
             )
             print("Done!")
 
@@ -101,7 +97,7 @@ struct Tweak: AsyncParsableCommand {
 
         @Option(
             name: .shortAndLong,
-            help: "Local path or Remote URL of config.json",
+            help: "Local path or Remote URL of config (default: derived from app version)",
             transform: {
                 if FileManager.default.fileExists(atPath: $0) {
                     return URL(fileURLWithPath: $0)
@@ -113,7 +109,7 @@ struct Tweak: AsyncParsableCommand {
                 }
             }
         )
-        var config: URL = URL(string:"https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/refs/heads/master/config.json")!
+        var config: URL? = nil
     }
 
     static let configuration = CommandConfiguration(
@@ -128,6 +124,35 @@ struct Tweak: AsyncParsableCommand {
     mutating func run() async throws {
         print(Tweak.helpMessage())
         Darwin.exit(EXIT_SUCCESS)
+    }
+}
+
+extension Tweak {
+    static func load(url: URL) async throws -> [Target] {
+        let data = try await {
+            if url.isFileURL {
+                return try Data(contentsOf: url)
+            } else {
+                return try await URLSession.shared.data(from: url).0
+            }
+        }()
+        return try JSONDecoder().decode([Target].self, from: data)
+    }
+
+    static func load(version: String) async throws -> [Target]? {
+        guard try await Tweak.versions().contains(version) else {
+            return nil
+        }
+        return try await Self.load(url: URL(string: "https://raw.githubusercontent.com/sunnyyoung/WeChatTweak/master/Versions/\(version).json")!)
+    }
+
+    static func versions() async throws -> [String] {
+        let data = try await URLSession.shared.data(
+            for: URLRequest(
+                url: URL(string: "https://api.github.com/repos/sunnyyoung/WeChatTweak/contents/Versions")!
+            )
+        )
+        return (try JSONSerialization.jsonObject(with: data.0) as? [[String: Any]])?.compactMap { ($0["name"] as? NSString)?.deletingPathExtension } ?? []
     }
 }
 
