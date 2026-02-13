@@ -303,5 +303,30 @@
         ]
       }
     ]
+  },
+  {
+    "version": "34817",
+    "targets": [
+      {
+        "identifier": "revoke",
+        "entries": [
+          {
+            "arch": "x86_64",
+            "addr": "1049c295b",
+            "asm": "31C0909090"
+          }
+        ]
+      },
+      {
+        "identifier": "multiInstance",
+        "entries": [
+          {
+            "arch": "x86_64",
+            "addr": "1001dbbc0",
+            "asm": "B801000000C3"
+          }
+        ]
+      }
+    ]
   }
 ]
