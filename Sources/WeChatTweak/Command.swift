@@ -23,14 +23,40 @@ struct Command {
         try await Command.execute(command: "defaults read \(app.appendingPathComponent("Contents/Info.plist").path) CFBundleVersion")
     }
 
-    static func patch(app: URL, config: Config) async throws {
-        try Patcher.patch(binary: app.appendingPathComponent("Contents/MacOS/WeChat"), config: config)
+    @discardableResult
+    static func patch(app: URL, config: Config) async throws -> [URL] {
+        // 4.2 moved the app's code from Contents/MacOS/WeChat to
+        // Contents/Resources/wechat.dylib, so one run may patch several files.
+        let groups = Dictionary(grouping: config.targets) { target in
+            target.file ?? "Contents/MacOS/WeChat"
+        }
+
+        var modified: [URL] = []
+        for (path, targets) in groups.sorted(by: { $0.key < $1.key }) {
+            let binary = app.appendingPathComponent(path)
+            try Patcher.patch(
+                binary: binary,
+                config: Config(version: config.version, targets: targets)
+            )
+            modified.append(binary)
+        }
+        return modified
     }
 
-    static func resign(app: URL) async throws {
-        try await Command.execute(command: "codesign --remove-sign \(app.path)")
-        try await Command.execute(command: "codesign --force --deep --sign - \(app.path)")
-        try await Command.execute(command: "xattr -cr \(app.path)")
+    static func resign(app: URL, modified: [URL]) async throws {
+        // `codesign --deep` does not descend into Contents/Resources, so the
+        // patched Mach-O files have to be signed explicitly before the app.
+        //
+        // `--preserve-metadata=entitlements` matters on WeChat 4.2: without the
+        // sandbox entitlements the client cannot find its container, and
+        // `--deep` is still required because the ad-hoc main executable and the
+        // Tencent-signed frameworks must end up with the same (empty) Team ID,
+        // otherwise dyld refuses to load libwxld.dylib.
+        for binary in modified {
+            try await Command.execute(command: "codesign --force --sign - '\(binary.path)'")
+        }
+        try await Command.execute(command: "codesign --force --deep --sign - --preserve-metadata=entitlements '\(app.path)'")
+        try await Command.execute(command: "xattr -cr '\(app.path)'")
     }
 
     @discardableResult

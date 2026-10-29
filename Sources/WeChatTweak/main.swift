@@ -46,7 +46,7 @@ extension Tweak {
             print("Matched config: \(config)")
 
             print("------ Patch ------")
-            try await Command.patch(
+            let modified = try await Command.patch(
                 app: options.app,
                 config: config
             )
@@ -54,7 +54,8 @@ extension Tweak {
 
             print("------ Resign ------")
             try await Command.resign(
-                app: options.app
+                app: options.app,
+                modified: modified
             )
             print("Done!")
 

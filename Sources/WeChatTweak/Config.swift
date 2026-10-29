@@ -64,16 +64,21 @@ struct Config: Decodable {
 
     struct Target: Decodable {
         let identifier: String
+        /// Mach-O file to patch, relative to `WeChat.app`.
+        /// Defaults to the pre-4.2 layout when omitted.
+        let file: String?
         let entries: [Entry]
 
         private enum CodingKeys: CodingKey {
             case identifier
+            case file
             case entries
         }
 
         init(from decoder: any Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             self.identifier = try container.decode(String.self, forKey: .identifier)
+            self.file = try container.decodeIfPresent(String.self, forKey: .file)
             self.entries = try container.decode([Entry].self, forKey: .entries)
         }
     }
